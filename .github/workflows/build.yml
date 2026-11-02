@@ -1,0 +1,43 @@
+name: Build Sequin VST3
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Windows x64)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile Sequin VST3 (Windows)
+        run: cmake --build build --config Release --target Sequin_VST3
+
+      - name: Upload Windows VST3 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sequin-VST3-Windows
+          path: build/Sequin_artefacts/Release/VST3/Sequin.vst3
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (macOS Universal Binary)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+
+      - name: Compile Sequin VST3 (macOS)
+        run: cmake --build build --config Release --target Sequin_VST3
+
+      - name: Upload macOS VST3 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sequin-VST3-macOS
+          path: build/Sequin_artefacts/Release/VST3/Sequin.vst3
