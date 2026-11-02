@@ -14,7 +14,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(JUCE)
 
 juce_add_plugin(Sequin
-    COMPANY_NAME "KingSolomonAudio"
+    COMPANY_NAME "EasyAudio"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -26,6 +26,8 @@ juce_add_plugin(Sequin
     FORMATS VST3 Standalone
     PRODUCT_NAME "Sequin"
 )
+
+juce_generate_juce_header(Sequin)
 
 target_sources(Sequin
     PRIVATE
