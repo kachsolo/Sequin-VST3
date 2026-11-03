@@ -49,9 +49,8 @@ public:
     static constexpr int fftOrder = 11;
     static constexpr int fftSize  = 1 << fftOrder; // 2048
     static constexpr int numBins  = fftSize / 2 + 1; // 1025
-    static constexpr int hopSize  = fftSize / 4; // 512 (4x overlap)
+    static constexpr int hopSize  = fftSize / 4; // 512
 
-    // Thread-safe UI telemetry snapshot getter
     void getVisualSnapshot(std::array<float, numBins>& outSpectrumDb,
                            std::array<float, numBins>& outBaselineDb,
                            std::array<float, numBins>& outThresholdDb,
@@ -59,16 +58,13 @@ public:
 
     double getCurrentSampleRate() const noexcept { return currentSampleRate.load(); }
 
-    // Telemetry Atomics
-    std::atomic<int> activeHarmonicsCount { 0 };
-    std::atomic<int> tooHotHarmonicsCount { 0 };
-    std::atomic<int> loopTotalHarmonics   { 0 };
-    std::atomic<int> loopExcessiveCount   { 0 };
-    std::atomic<bool> warningLightActive  { false };
-    std::atomic<float> lowCutFreqHz       { 2500.0f };
-    std::atomic<float> highCutFreqHz      { 4200.0f };
-
-    void resetLoopTelemetry();
+    // Telemetry & Transport State
+    std::atomic<bool> isDawPlaying         { false };
+    std::atomic<int>  harmonicsDetected    { 0 };
+    std::atomic<int>  tooHotHarmonicsCount { 0 };
+    std::atomic<bool> warningLightActive   { false };
+    std::atomic<float> lowCutFreqHz        { 80.0f };
+    std::atomic<float> highCutFreqHz       { 20000.0f };
 
 private:
     juce::AudioProcessorValueTreeState apvts;
@@ -102,14 +98,15 @@ private:
     std::array<ChannelSTFT, 2> stftChannels;
     std::array<float, numBins> currentBinGain {};
 
-    // Visual shared buffers protected by a SpinLock
     mutable juce::SpinLock visualLock;
     std::array<float, numBins> smoothedSpectrumDb {};
     std::array<float, numBins> baselineFloorDb {};
     std::array<float, numBins> dynamicThresholdDb {};
     std::vector<HarmonicPeakInfo> detectedPeaks;
 
-    double lastPlayheadPpq = -1.0;
+    bool wasDawPlaying = false;
+    int sessionPeakHarmonics = 0;
+    int sessionPeakTooHot = 0;
 
     void processSpectralFrame(ChannelSTFT& ch, bool isPrimaryAnalysisChannel,
                               float focusHz, float qVal, float sensitivityVal,
