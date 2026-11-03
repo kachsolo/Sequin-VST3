@@ -195,15 +195,12 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, numSamples);
 
-    // Track Transport Play/Pause State in Cubase
+    // Track Transport Play/Pause State in Cubase (Fixed C4458 & C2100)
     bool playing = true;
-    if (auto* playHead = getPlayHead())
+    if (auto* ph = getPlayHead())
     {
-        if (auto posInfo = playHead->getPosition())
-        {
-            if (auto p = posInfo->getIsPlaying())
-                playing = *p;
-        }
+        if (auto posInfo = ph->getPosition())
+            playing = posInfo->getIsPlaying();
     }
     isDawPlaying.store(playing);
 
@@ -353,8 +350,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
                                              baselineFloorDb[static_cast<size_t>(k)] - 10.0f);
 
             // Psychoacoustic Frequency-Weighting (Method 2)
-            // 1. High frequencies (>3 kHz) drop threshold by up to 4.5 dB (catches condenser mic bite & sibilance)
-            // 2. Low-mids (<700 Hz) raise threshold by up to 3.0 dB (protects chest warmth)
             float freqTiltDb = 0.0f;
             if (freq > 3000.0f)
             {
