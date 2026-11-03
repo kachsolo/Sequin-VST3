@@ -36,11 +36,11 @@ private:
     void timerCallback() override;
 
     void drawBrushedMetalBackground(juce::Graphics& g, juce::Rectangle<int> bounds);
-    void drawTopHeader(juce::Graphics& g);
+    void drawTopHeader(juce::Graphics& g, float sx, float sy);
     void drawSpectrumView(juce::Graphics& g, juce::Rectangle<float> bounds);
     void drawViewModeDivider(juce::Graphics& g, juce::Rectangle<float> bounds);
     void drawRXHarmonicStackView(juce::Graphics& g, juce::Rectangle<float> bounds);
-    void drawControlDeckLabels(juce::Graphics& g);
+    void drawControlDeckLabels(juce::Graphics& g, float sx, float sy);
 
     float freqToNormX(float freqHz) const;
     float dbToNormY(float db) const;
@@ -48,8 +48,8 @@ private:
 
     SequinAudioProcessor& audioProcessor;
     SequinLookAndFeel sequinLnF;
+    juce::TooltipWindow tooltipWindow { this, 400 };
 
-    // Controls
     juce::Slider focusSlider;
     juce::Slider sensitivitySlider;
     juce::Slider qResonanceSlider;
@@ -70,14 +70,13 @@ private:
     std::unique_ptr<ButtonAttachment> focusAuditionAttachment;
     std::unique_ptr<ButtonAttachment> bypassAttachment;
 
-    // Display Data & Animated Morph State
     std::array<float, SequinAudioProcessor::numBins> spectrumDb {};
     std::array<float, SequinAudioProcessor::numBins> baselineDb {};
     std::array<float, SequinAudioProcessor::numBins> thresholdDb {};
     std::vector<HarmonicPeakInfo> activePeaks;
 
-    static constexpr int numStackColumns = 44;
-    static constexpr int numHarmonicBands = 32;
+    static constexpr int numStackColumns = 48;
+    static constexpr int numHarmonicBands = 36;
     struct ColumnHistory
     {
         std::array<float, numHarmonicBands> bandDb {};
@@ -85,7 +84,7 @@ private:
     };
     std::deque<ColumnHistory> rxHistoryColumns;
 
-    float viewMorphProgress = 0.0f; // 0.0 = Dual/Spectrum priority, 1.0 = Full RX Harmonic Stack morph
+    float viewMorphProgress = 0.0f;
     juce::Rectangle<float> viewToggleHitBox;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SequinAudioProcessorEditor)
