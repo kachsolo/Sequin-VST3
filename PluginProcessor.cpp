@@ -13,7 +13,7 @@ SequinAudioProcessor::SequinAudioProcessor()
       window(fftSize, juce::dsp::WindowingFunction<float>::hann, false)
 {
     smoothedSpectrumDb.fill(-90.0f);
-    baselineFloorDb.fill(-42.0f);
+    baselineFloorDb.fill(-40.0f);
     dynamicThresholdDb.fill(-24.0f);
     currentBinGain.fill(1.0f);
     detectedPeaks.reserve(64);
@@ -25,34 +25,43 @@ juce::AudioProcessorValueTreeState::ParameterLayout SequinAudioProcessor::create
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    auto freqRange = juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f);
+    // Focus Range: 80 Hz to 20 kHz
+    auto freqRange = juce::NormalisableRange<float>(80.0f, 20000.0f, 1.0f);
     freqRange.setSkewForCentre(1500.0f);
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "focusFreq", 1 },
-        "Focus Frequency",
+        "Focus",
         freqRange,
-        3450.0f));
+        3400.0f));
 
-    auto qRange = juce::NormalisableRange<float>(0.5f, 16.0f, 0.01f);
-    qRange.setSkewForCentre(3.5f);
+    // Q/Resonance: 0.1 to 10.0 (0.1 engages full 80Hz - 20kHz range)
+    auto qRange = juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f);
+    qRange.setSkewForCentre(2.5f);
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "qResonance", 1 },
         "Q / Resonance",
         qRange,
-        6.5f));
+        4.0f));
 
+    // Sensitivity: 0 to 100%
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "sensitivity", 1 },
-        "Sensitivity (Too Hot)",
+        "Sensitivity",
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
         65.0f));
 
+    // Harmonic Tame: Clockwise increases negative gain from 0.0 dB down to -24.0 dB
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "harmonicTame", 1 },
         "Harmonic Tame",
-        juce::NormalisableRange<float>(-12.0f, 0.0f, 0.1f),
-        -4.5f));
+        juce::NormalisableRange<float>(0.0f, 24.0f, 0.1f),
+        6.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float val, int) { return (val > 0.05f ? "-" : "") + juce::String(val, 1) + " dB"; },
+        [](const juce::String& text) { return std::abs(text.getFloatValue()); }));
 
+    // Mix: 0 to 100%
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "mix", 1 },
         "Mix",
@@ -71,7 +80,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SequinAudioProcessor::create
 
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID { "viewMode", 1 },
-        "View Mode (RX Stack)",
+        "View Mode",
         false));
 
     return { params.begin(), params.end() };
@@ -98,16 +107,15 @@ void SequinAudioProcessor::prepareToPlay(double sampleRate, int /*samplesPerBloc
     currentBinGain.fill(1.0f);
     setLatencySamples(fftSize - hopSize);
 
-    // Initialize Frequency-Calibrated Green Baseline Floor (-3 dB/oct vocal tilt reference)
     const double sr = currentSampleRate.load();
     juce::SpinLock::ScopedLockType lock(visualLock);
     for (int k = 1; k < numBins; ++k)
     {
         float freq = static_cast<float>(k * sr / static_cast<double>(fftSize));
-        float octavesFrom200 = std::log2( std::max(20.0f, freq) / 200.0f );
-        baselineFloorDb[static_cast<size_t>(k)] = -28.0f - 2.6f * std::max(0.0f, octavesFrom200);
+        float octavesFrom200 = std::log2(std::max(80.0f, freq) / 200.0f);
+        baselineFloorDb[static_cast<size_t>(k)] = -28.0f - 2.8f * std::max(0.0f, octavesFrom200);
     }
-    baselineFloorDb[0] = -40.0f;
+    baselineFloorDb[0] = -42.0f;
 }
 
 void SequinAudioProcessor::releaseResources() {}
@@ -121,12 +129,6 @@ bool SequinAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) co
     return mainOut == layouts.getMainInputChannelSet();
 }
 
-void SequinAudioProcessor::resetLoopTelemetry()
-{
-    loopTotalHarmonics.store(0);
-    loopExcessiveCount.store(0);
-}
-
 void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -137,32 +139,47 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, numSamples);
 
-    // Check DAW Playhead for Loop Telemetry reset when Cubase loops back
+    // Track Transport Play/Pause State in Cubase
+    bool playing = true;
     if (auto* playHead = getPlayHead())
     {
         if (auto posInfo = playHead->getPosition())
         {
-            if (auto ppq = posInfo->getPpqPosition())
-            {
-                if (lastPlayheadPpq > 0.0 && *ppq < lastPlayheadPpq - 0.25)
-                    resetLoopTelemetry();
-                lastPlayheadPpq = *ppq;
-            }
+            if (auto p = posInfo->getIsPlaying())
+                playing = *p;
         }
     }
+    isDawPlaying.store(playing);
 
-    const float focusHz       = apvts.getRawParameterValue("focusFreq")->load();
-    const float qVal          = apvts.getRawParameterValue("qResonance")->load();
-    const float sensitivity   = apvts.getRawParameterValue("sensitivity")->load();
-    const float tameDb        = apvts.getRawParameterValue("harmonicTame")->load();
-    const float mixPct        = apvts.getRawParameterValue("mix")->load();
-    const bool auditionMode   = apvts.getRawParameterValue("focusAudition")->load() > 0.5f;
-    const bool bypassed       = apvts.getRawParameterValue("bypass")->load() > 0.5f;
+    // Reset session peak telemetry when playback begins anew
+    if (playing && !wasDawPlaying)
+    {
+        sessionPeakHarmonics = 0;
+        sessionPeakTooHot = 0;
+    }
+    wasDawPlaying = playing;
 
-    // Update Bandpass Window Bounds
-    const float halfBandwidthOct = 0.65f / std::max(0.5f, qVal);
-    const float fLow  = juce::jlimit(20.0f, 20000.0f, focusHz * std::pow(2.0f, -halfBandwidthOct));
-    const float fHigh = juce::jlimit(20.0f, 20000.0f, focusHz * std::pow(2.0f, +halfBandwidthOct));
+    const float focusHz     = apvts.getRawParameterValue("focusFreq")->load();
+    const float qVal        = apvts.getRawParameterValue("qResonance")->load();
+    const float sensitivity = apvts.getRawParameterValue("sensitivity")->load();
+    const float tameAmount  = apvts.getRawParameterValue("harmonicTame")->load(); // 0 to 24 dB cut
+    const float mixPct      = apvts.getRawParameterValue("mix")->load();
+    const bool auditionMode = apvts.getRawParameterValue("focusAudition")->load() > 0.5f;
+    const bool bypassed     = apvts.getRawParameterValue("bypass")->load() > 0.5f;
+
+    // Requirement 1: At min Q (<= 0.15), plugin works on full range (80 Hz to 20 kHz)
+    float fLow = 80.0f;
+    float fHigh = 20000.0f;
+    if (qVal > 0.15f)
+    {
+        const float maxOctSpan = std::log2(20000.0f / 80.0f); // ~7.96 octaves
+        const float minOctSpan = 0.15f;
+        const float normQ = (qVal - 0.15f) / (10.0f - 0.15f);
+        const float octSpan = juce::jmap(std::pow(normQ, 0.55f), maxOctSpan, minOctSpan);
+
+        fLow  = juce::jlimit(80.0f, 20000.0f, focusHz * std::pow(2.0f, -octSpan * 0.5f));
+        fHigh = juce::jlimit(80.0f, 20000.0f, focusHz * std::pow(2.0f, +octSpan * 0.5f));
+    }
     lowCutFreqHz.store(fLow);
     highCutFreqHz.store(fHigh);
 
@@ -179,16 +196,13 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
         {
             const float inSample = channelData[s];
 
-            // Latency-matched dry delay line
             const int delayReadIdx = (stft.dryWriteIndex + hopSize) % fftSize;
             const float delayedDry = stft.dryDelayLine[static_cast<size_t>(delayReadIdx)];
             stft.dryDelayLine[static_cast<size_t>(stft.dryWriteIndex)] = inSample;
             stft.dryWriteIndex = (stft.dryWriteIndex + 1) % fftSize;
 
-            // Push input into STFT circular FIFO
             stft.inputFifo[static_cast<size_t>(stft.fifoIndex)] = inSample;
 
-            // Read reconstructed wet sample from OLA accumulator
             const float wetSample = stft.outputAccumulator[static_cast<size_t>(stft.fifoIndex)];
             stft.outputAccumulator[static_cast<size_t>(stft.fifoIndex)] = 0.0f;
 
@@ -206,7 +220,7 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
             if (stft.fifoIndex % hopSize == 0)
             {
                 processSpectralFrame(stft, chIdx == 0, focusHz, qVal,
-                                     sensitivity, tameDb, auditionMode);
+                                     sensitivity, tameAmount, auditionMode);
             }
         }
     }
@@ -214,11 +228,10 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
 
 void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryAnalysisChannel,
                                                 float /*focusHz*/, float /*qVal*/, float sensitivityVal,
-                                                float tameDb, bool auditionMode)
+                                                float tameAmount, bool auditionMode)
 {
     ch.fftWorkBuffer.fill(0.0f);
 
-    // Copy unwrapped frame from circular FIFO
     int readIdx = ch.fifoIndex;
     for (int i = 0; i < fftSize; ++i)
     {
@@ -245,9 +258,7 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
             frameMagDb[static_cast<size_t>(k)] = juce::Decibels::gainToDecibels(mag, -96.0f);
         }
 
-        // Compute Local Running Average & Dynamic Threshold
-        // Higher sensitivity lowers the "Too Hot" threshold closer to the local average
-        const float thresholdOffsetDb = 18.0f - (sensitivityVal * 0.155f); // +18 dB down to +2.5 dB
+        const float thresholdOffsetDb = 16.0f - (sensitivityVal * 0.145f);
 
         std::array<float, numBins> localAvgDb {};
         for (int k = 1; k < numBins - 1; ++k)
@@ -261,7 +272,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
             localAvgDb[static_cast<size_t>(k)] = sum / static_cast<float>(endBin - startBin + 1);
         }
 
-        // Reset all target gains to 1.0 (instant event-based release the microsecond energy subsides)
         currentBinGain.fill(1.0f);
 
         int harmonicsInZone = 0;
@@ -272,6 +282,9 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
         for (int k = 2; k < numBins - 2; ++k)
         {
             const float freq = k * binHz;
+            if (freq < 80.0f || freq > 20000.0f)
+                continue;
+
             const bool insideFocus = (freq >= fLow && freq <= fHigh);
 
             if (auditionMode && !insideFocus)
@@ -282,15 +295,14 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
 
             const float magDb = frameMagDb[static_cast<size_t>(k)];
             const float refBaseDb = std::max(localAvgDb[static_cast<size_t>(k)],
-                                             baselineFloorDb[static_cast<size_t>(k)] - 12.0f);
+                                             baselineFloorDb[static_cast<size_t>(k)] - 10.0f);
             const float threshDb = refBaseDb + thresholdOffsetDb;
             dynamicThresholdDb[static_cast<size_t>(k)] = threshDb;
 
-            // Detect distinct spectral harmonic peak
             const bool isLocalPeak = (magDb > frameMagDb[static_cast<size_t>(k - 1)]) &&
                                      (magDb >= frameMagDb[static_cast<size_t>(k + 1)]) &&
-                                     (magDb > -68.0f) &&
-                                     (magDb > localAvgDb[static_cast<size_t>(k)] + 1.8f);
+                                     (magDb > -65.0f) &&
+                                     (magDb > localAvgDb[static_cast<size_t>(k)] + 1.6f);
 
             if (insideFocus && isLocalPeak)
             {
@@ -299,26 +311,23 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
                 const bool isHot = (excessDb > 0.0f);
 
                 float appliedCutDb = 0.0f;
-                if (isHot)
+                if (isHot && tameAmount > 0.05f)
                 {
                     tooHotInZone++;
-                    // Independent Overtone Leveling scaled by Macro Harmonic Tame (0 to -12 dB)
-                    const float macroScale = std::abs(tameDb) / 12.0f;
-                    appliedCutDb = -std::min(12.0f, excessDb * 0.85f * macroScale + (macroScale * 1.5f));
+                    // Requirement 2: Significantly amplified harmonic tame depth (scaled up to -24 dB)
+                    const float macroScale = tameAmount / 24.0f;
+                    appliedCutDb = -std::min(tameAmount, (excessDb * 1.8f + 2.5f) * macroScale);
                     const float linGain = juce::Decibels::decibelsToGain(appliedCutDb);
 
-                    // Apply microsecond clamp-on to peak and immediate skirts
-                    currentBinGain[static_cast<size_t>(k)]     = std::min(currentBinGain[static_cast<size_t>(k)], linGain);
+                    currentBinGain[static_cast<size_t>(k)] = std::min(currentBinGain[static_cast<size_t>(k)], linGain);
                     currentBinGain[static_cast<size_t>(k - 1)] = std::min(currentBinGain[static_cast<size_t>(k - 1)],
-                                                                          juce::jmap(0.5f, linGain, 1.0f));
+                                                                          juce::jmap(0.4f, linGain, 1.0f));
                     currentBinGain[static_cast<size_t>(k + 1)] = std::min(currentBinGain[static_cast<size_t>(k + 1)],
-                                                                          juce::jmap(0.5f, linGain, 1.0f));
+                                                                          juce::jmap(0.4f, linGain, 1.0f));
                 }
 
                 if (framePeaks.size() < 24)
-                {
                     framePeaks.push_back({ freq, magDb, appliedCutDb, isHot });
-                }
             }
         }
 
@@ -329,16 +338,16 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
             currentBinGain[numBins - 1] = 0.0f;
         }
 
-        activeHarmonicsCount.store(harmonicsInZone);
-        tooHotHarmonicsCount.store(tooHotInZone);
+        // Requirement 10: Peak telemetry logging for playback stops
+        if (isDawPlaying.load())
+        {
+            sessionPeakHarmonics = std::max(sessionPeakHarmonics, harmonicsInZone);
+            sessionPeakTooHot    = std::max(sessionPeakTooHot, tooHotInZone);
+            harmonicsDetected.store(sessionPeakHarmonics);
+            tooHotHarmonicsCount.store(sessionPeakTooHot);
+        }
         warningLightActive.store(tooHotInZone > 0);
 
-        if (harmonicsInZone > loopTotalHarmonics.load())
-            loopTotalHarmonics.store(harmonicsInZone);
-        if (tooHotInZone > loopExcessiveCount.load())
-            loopExcessiveCount.store(tooHotInZone);
-
-        // Update UI visual arrays under spinlock
         {
             juce::SpinLock::ScopedTryLockType lock(visualLock);
             if (lock.isLocked())
@@ -347,7 +356,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
                 {
                     const float inDb = frameMagDb[static_cast<size_t>(k)];
                     const float prevDb = smoothedSpectrumDb[static_cast<size_t>(k)];
-                    // Fast attack, smooth visual decay
                     smoothedSpectrumDb[static_cast<size_t>(k)] = (inDb > prevDb)
                         ? (0.55f * inDb + 0.45f * prevDb)
                         : (0.18f * inDb + 0.82f * prevDb);
@@ -357,7 +365,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
         }
     }
 
-    // Apply per-bin harmonic attenuation gains to complex spectrum
     for (int k = 0; k < numBins; ++k)
     {
         const float g = currentBinGain[static_cast<size_t>(k)];
@@ -368,7 +375,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
     inverseFFT.performRealOnlyInverseTransform(ch.fftWorkBuffer.data());
     window.multiplyWithWindowingTable(ch.fftWorkBuffer.data(), fftSize);
 
-    // Hann^2 with 4x overlap sums to 1.5 -> scale by 2/3
     constexpr float olaNorm = 2.0f / 3.0f;
     int writeIdx = ch.fifoIndex;
     for (int i = 0; i < fftSize; ++i)
