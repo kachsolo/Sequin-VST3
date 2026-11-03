@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Sequin VERSION 1.0.0)
+project(Sequin VERSION 1.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,14 +14,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(JUCE)
 
 juce_add_plugin(Sequin
-    COMPANY_NAME "EasyAudio"
+    COMPANY_NAME "Easy Audio"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE
-    PLUGIN_MANUFACTURER_CODE SpAu
+    PLUGIN_MANUFACTURER_CODE EaAu
     PLUGIN_CODE SqHt
     FORMATS VST3 Standalone
     PRODUCT_NAME "Sequin"
