@@ -32,34 +32,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout SequinAudioProcessor::create
         juce::ParameterID { "focusFreq", 1 },
         "Focus",
         freqRange,
-        3400.0f));
+        7200.0f));
 
-    // Q/Resonance: 0.1 to 10.0 (0.1 engages full 80Hz - 20kHz range)
+    // Q/Resonance: 0.1 to 10.0 (0.1 engages full 80 Hz - 20 kHz range)
     auto qRange = juce::NormalisableRange<float>(0.1f, 10.0f, 0.01f);
     qRange.setSkewForCentre(2.5f);
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "qResonance", 1 },
         "Q / Resonance",
         qRange,
-        4.0f));
+        4.5f));
 
     // Sensitivity: 0 to 100%
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "sensitivity", 1 },
         "Sensitivity",
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
-        65.0f));
+        78.0f));
 
-    // Harmonic Tame: Clockwise increases negative gain from 0.0 dB down to -24.0 dB
+    // Harmonic Tame: 0.0 dB to 24.0 dB of subtractive gain
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID { "harmonicTame", 1 },
         "Harmonic Tame",
         juce::NormalisableRange<float>(0.0f, 24.0f, 0.1f),
-        6.0f,
-        juce::String(),
-        juce::AudioProcessorParameter::genericParameter,
-        [](float val, int) { return (val > 0.05f ? "-" : "") + juce::String(val, 1) + " dB"; },
-        [](const juce::String& text) { return std::abs(text.getFloatValue()); }));
+        8.5f));
 
     // Mix: 0 to 100%
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -91,11 +87,71 @@ bool SequinAudioProcessor::acceptsMidi() const { return false; }
 bool SequinAudioProcessor::producesMidi() const { return false; }
 bool SequinAudioProcessor::isMidiEffect() const { return false; }
 double SequinAudioProcessor::getTailLengthSeconds() const { return 0.0; }
-int SequinAudioProcessor::getNumPrograms() { return 1; }
-int SequinAudioProcessor::getCurrentProgram() { return 0; }
-void SequinAudioProcessor::setCurrentProgram(int) {}
-const juce::String SequinAudioProcessor::getProgramName(int) { return {}; }
+
+// DAW Programs & Hardware Presets
+int SequinAudioProcessor::getNumPrograms() { return 5; }
+int SequinAudioProcessor::getCurrentProgram() { return currentProgram; }
+
+void SequinAudioProcessor::setCurrentProgram(int index)
+{
+    loadPreset(index);
+}
+
+const juce::String SequinAudioProcessor::getProgramName(int index)
+{
+    switch (index)
+    {
+        case 0: return "AKG C2000B De-Harsh (5k-10k)";
+        case 1: return "Vocal Sibilance Tamer";
+        case 2: return "Boxy Low-Mids Cleaner";
+        case 3: return "Air & High Sheen";
+        case 4: return "Full Range Vocal Leveler";
+        default: return "Default";
+    }
+}
+
 void SequinAudioProcessor::changeProgramName(int, const juce::String&) {}
+
+void SequinAudioProcessor::loadPreset(int presetIndex)
+{
+    currentProgram = juce::jlimit(0, 4, presetIndex);
+
+    struct PresetValues { float freq; float q; float sens; float tame; float mix; };
+    PresetValues preset;
+
+    switch (currentProgram)
+    {
+        case 0: // AKG C2000B Condenser Mic Presence/Bite Tamer
+            preset = { 7200.0f, 4.5f, 78.0f, 8.5f, 100.0f };
+            break;
+        case 1: // General Sibilance / De-Essing
+            preset = { 6200.0f, 4.0f, 74.0f, 7.5f, 100.0f };
+            break;
+        case 2: // Boxy Low-Mids / Mud
+            preset = { 420.0f, 5.5f, 52.0f, 5.0f, 100.0f };
+            break;
+        case 3: // Air & High Sheen
+            preset = { 11500.0f, 2.2f, 65.0f, 4.0f, 100.0f };
+            break;
+        case 4: // Full Range Leveling (Min Q = 80Hz - 20kHz net)
+            preset = { 3200.0f, 0.1f, 60.0f, 4.5f, 100.0f };
+            break;
+        default:
+            preset = { 7200.0f, 4.5f, 78.0f, 8.5f, 100.0f };
+            break;
+    }
+
+    if (auto* p = apvts.getParameter("focusFreq"))
+        p->setValueNotifyingHost(p->convertTo0to1(preset.freq));
+    if (auto* p = apvts.getParameter("qResonance"))
+        p->setValueNotifyingHost(p->convertTo0to1(preset.q));
+    if (auto* p = apvts.getParameter("sensitivity"))
+        p->setValueNotifyingHost(p->convertTo0to1(preset.sens));
+    if (auto* p = apvts.getParameter("harmonicTame"))
+        p->setValueNotifyingHost(p->convertTo0to1(preset.tame));
+    if (auto* p = apvts.getParameter("mix"))
+        p->setValueNotifyingHost(p->convertTo0to1(preset.mix));
+}
 
 void SequinAudioProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
 {
@@ -151,7 +207,6 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     }
     isDawPlaying.store(playing);
 
-    // Reset session peak telemetry when playback begins anew
     if (playing && !wasDawPlaying)
     {
         sessionPeakHarmonics = 0;
@@ -162,17 +217,17 @@ void SequinAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     const float focusHz     = apvts.getRawParameterValue("focusFreq")->load();
     const float qVal        = apvts.getRawParameterValue("qResonance")->load();
     const float sensitivity = apvts.getRawParameterValue("sensitivity")->load();
-    const float tameAmount  = apvts.getRawParameterValue("harmonicTame")->load(); // 0 to 24 dB cut
+    const float tameAmount  = apvts.getRawParameterValue("harmonicTame")->load();
     const float mixPct      = apvts.getRawParameterValue("mix")->load();
     const bool auditionMode = apvts.getRawParameterValue("focusAudition")->load() > 0.5f;
     const bool bypassed     = apvts.getRawParameterValue("bypass")->load() > 0.5f;
 
-    // Requirement 1: At min Q (<= 0.15), plugin works on full range (80 Hz to 20 kHz)
+    // Calibrated Q: At min Q (<= 0.15), plugin works on full range (80 Hz to 20 kHz)
     float fLow = 80.0f;
     float fHigh = 20000.0f;
     if (qVal > 0.15f)
     {
-        const float maxOctSpan = std::log2(20000.0f / 80.0f); // ~7.96 octaves
+        const float maxOctSpan = std::log2(20000.0f / 80.0f);
         const float minOctSpan = 0.15f;
         const float normQ = (qVal - 0.15f) / (10.0f - 0.15f);
         const float octSpan = juce::jmap(std::pow(normQ, 0.55f), maxOctSpan, minOctSpan);
@@ -296,7 +351,23 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
             const float magDb = frameMagDb[static_cast<size_t>(k)];
             const float refBaseDb = std::max(localAvgDb[static_cast<size_t>(k)],
                                              baselineFloorDb[static_cast<size_t>(k)] - 10.0f);
-            const float threshDb = refBaseDb + thresholdOffsetDb;
+
+            // Psychoacoustic Frequency-Weighting (Method 2)
+            // 1. High frequencies (>3 kHz) drop threshold by up to 4.5 dB (catches condenser mic bite & sibilance)
+            // 2. Low-mids (<700 Hz) raise threshold by up to 3.0 dB (protects chest warmth)
+            float freqTiltDb = 0.0f;
+            if (freq > 3000.0f)
+            {
+                const float octAbove3k = std::log2(freq / 3000.0f);
+                freqTiltDb = -std::min(4.5f, octAbove3k * 1.8f);
+            }
+            else if (freq < 700.0f)
+            {
+                const float octBelow700 = std::log2(700.0f / std::max(80.0f, freq));
+                freqTiltDb = +std::min(3.0f, octBelow700 * 1.2f);
+            }
+
+            const float threshDb = refBaseDb + thresholdOffsetDb + freqTiltDb;
             dynamicThresholdDb[static_cast<size_t>(k)] = threshDb;
 
             const bool isLocalPeak = (magDb > frameMagDb[static_cast<size_t>(k - 1)]) &&
@@ -314,7 +385,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
                 if (isHot && tameAmount > 0.05f)
                 {
                     tooHotInZone++;
-                    // Requirement 2: Significantly amplified harmonic tame depth (scaled up to -24 dB)
                     const float macroScale = tameAmount / 24.0f;
                     appliedCutDb = -std::min(tameAmount, (excessDb * 1.8f + 2.5f) * macroScale);
                     const float linGain = juce::Decibels::decibelsToGain(appliedCutDb);
@@ -338,7 +408,6 @@ void SequinAudioProcessor::processSpectralFrame(ChannelSTFT& ch, bool isPrimaryA
             currentBinGain[numBins - 1] = 0.0f;
         }
 
-        // Requirement 10: Peak telemetry logging for playback stops
         if (isDawPlaying.load())
         {
             sessionPeakHarmonics = std::max(sessionPeakHarmonics, harmonicsInZone);
