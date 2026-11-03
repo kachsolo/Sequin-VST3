@@ -15,69 +15,62 @@ void SequinLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wi
 {
     const bool isMainTameKnob = (slider.getName() == "HarmonicTame");
     const auto bounds = juce::Rectangle<float>(static_cast<float>(x), static_cast<float>(y),
-                                               static_cast<float>(width), static_cast<float>(height)).reduced(6.0f);
+                                               static_cast<float>(width), static_cast<float>(height)).reduced(5.0f);
     const float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.5f;
     const auto centre = bounds.getCentre();
     const float toAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
-    // Outer recessed shadow ring
     const float outerRadius = radius * 0.88f;
     g.setColour(juce::Colour(0xff0b0d10));
     g.fillEllipse(centre.x - outerRadius - 3.0f, centre.y - outerRadius - 3.0f,
                   (outerRadius + 3.0f) * 2.0f, (outerRadius + 3.0f) * 2.0f);
 
-    // Value Arc Track
     juce::Path bgArc;
-    bgArc.addCentredArc(centre.x, centre.y, outerRadius + 5.0f, outerRadius + 5.0f,
+    bgArc.addCentredArc(centre.x, centre.y, outerRadius + 4.0f, outerRadius + 4.0f,
                         0.0f, rotaryStartAngle, rotaryEndAngle, true);
-    g.setColour(juce::Colour(0xff252a32));
-    g.strokePath(bgArc, juce::PathStrokeType(isMainTameKnob ? 3.5f : 2.8f,
+    g.setColour(juce::Colour(0xff22272e));
+    g.strokePath(bgArc, juce::PathStrokeType(isMainTameKnob ? 3.5f : 2.6f,
                                              juce::PathStrokeType::curved,
                                              juce::PathStrokeType::rounded));
 
-    // Active Glowing Arc
     juce::Path valArc;
-    valArc.addCentredArc(centre.x, centre.y, outerRadius + 5.0f, outerRadius + 5.0f,
+    valArc.addCentredArc(centre.x, centre.y, outerRadius + 4.0f, outerRadius + 4.0f,
                          0.0f, rotaryStartAngle, toAngle, true);
-    g.setColour(isMainTameKnob ? juce::Colour(0xffe8f4ff) : juce::Colour(0xff52b8ff));
-    g.strokePath(valArc, juce::PathStrokeType(isMainTameKnob ? 3.8f : 3.0f,
+    g.setColour(isMainTameKnob ? juce::Colour(0xffff5566) : juce::Colour(0xff52b8ff));
+    g.strokePath(valArc, juce::PathStrokeType(isMainTameKnob ? 3.8f : 2.8f,
                                               juce::PathStrokeType::curved,
                                               juce::PathStrokeType::rounded));
 
-    // Metallic Bezel
     const float bodyRadius = radius * 0.74f;
-    juce::ColourGradient bezelGrad(juce::Colour(0xff525862), centre.x - bodyRadius, centre.y - bodyRadius,
-                                   juce::Colour(0xff191c20), centre.x + bodyRadius, centre.y + bodyRadius, false);
+    juce::ColourGradient bezelGrad(juce::Colour(0xff505760), centre.x - bodyRadius, centre.y - bodyRadius,
+                                   juce::Colour(0xff181a1e), centre.x + bodyRadius, centre.y + bodyRadius, false);
     g.setGradientFill(bezelGrad);
     g.fillEllipse(centre.x - bodyRadius, centre.y - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f);
 
-    // Inner Cap (Iridescent sheen on Main Harmonic Tame knob, dark bronze/gunmetal on others)
     const float capRadius = bodyRadius * 0.84f;
     if (isMainTameKnob)
     {
-        juce::ColourGradient iridGrad(juce::Colour(0xff2c4d63), centre.x - capRadius, centre.y - capRadius,
-                                      juce::Colour(0xff5b2a42), centre.x + capRadius, centre.y + capRadius, false);
-        iridGrad.addColour(0.35, juce::Colour(0xff2d333b));
-        iridGrad.addColour(0.68, juce::Colour(0xff3c584e));
+        juce::ColourGradient iridGrad(juce::Colour(0xff264556), centre.x - capRadius, centre.y - capRadius,
+                                      juce::Colour(0xff522439), centre.x + capRadius, centre.y + capRadius, false);
+        iridGrad.addColour(0.35, juce::Colour(0xff272c33));
+        iridGrad.addColour(0.68, juce::Colour(0xff364e45));
         g.setGradientFill(iridGrad);
     }
     else
     {
-        juce::ColourGradient capGrad(juce::Colour(0xff3d3732), centre.x, centre.y - capRadius,
-                                     juce::Colour(0xff181a1d), centre.x, centre.y + capRadius, false);
+        juce::ColourGradient capGrad(juce::Colour(0xff38322e), centre.x, centre.y - capRadius,
+                                     juce::Colour(0xff16181b), centre.x, centre.y + capRadius, false);
         g.setGradientFill(capGrad);
     }
     g.fillEllipse(centre.x - capRadius, centre.y - capRadius, capRadius * 2.0f, capRadius * 2.0f);
 
-    // Subtle specular highlight ring
     g.setColour(juce::Colours::white.withAlpha(0.12f));
     g.drawEllipse(centre.x - capRadius, centre.y - capRadius, capRadius * 2.0f, capRadius * 2.0f, 1.2f);
 
-    // Pointer Indicator Notch
     juce::Path pointer;
     const float pointerLen = capRadius * 0.82f;
     pointer.addRoundedRectangle(-1.8f, -pointerLen, 3.6f, capRadius * 0.38f, 1.5f);
-    g.setColour(isMainTameKnob ? juce::Colour(0xffff5a6e) : juce::Colour(0xffffb84d));
+    g.setColour(isMainTameKnob ? juce::Colour(0xffff5566) : juce::Colour(0xffffb84d));
     g.fillPath(pointer, juce::AffineTransform::rotation(toAngle).translated(centre.x, centre.y));
 }
 
@@ -85,31 +78,28 @@ void SequinLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int wi
                                          float sliderPos, float /*minSliderPos*/, float /*maxSliderPos*/,
                                          const juce::Slider::SliderStyle, juce::Slider& /*slider*/)
 {
-    const float trackWidth = 22.0f;
+    const float trackWidth = 20.0f;
     const float trackX = static_cast<float>(x) + (static_cast<float>(width) - trackWidth) * 0.5f;
     const auto trackRect = juce::Rectangle<float>(trackX, static_cast<float>(y),
                                                   trackWidth, static_cast<float>(height));
 
-    // Recessed Vertical Slot
     g.setColour(juce::Colour(0xff0b0e12));
     g.fillRoundedRectangle(trackRect, 4.0f);
     g.setColour(juce::Colour(0xff343a42));
     g.drawRoundedRectangle(trackRect, 4.0f, 1.2f);
 
-    // Left LED Calibration Ladder Ticks
-    const int numTicks = 42;
+    const int numTicks = 38;
     for (int i = 0; i <= numTicks; ++i)
     {
         const float normY = static_cast<float>(i) / static_cast<float>(numTicks);
         const float ty = trackRect.getY() + normY * trackRect.getHeight();
-        const bool nearThumb = std::abs(ty - sliderPos) < 34.0f;
+        const bool nearThumb = std::abs(ty - sliderPos) < 32.0f;
         g.setColour(nearThumb ? juce::Colour(0xffffaa33) : juce::Colour(0xff38c878).withAlpha(0.65f));
         const float tickW = (i % 5 == 0) ? 6.0f : 3.5f;
         g.fillRect(trackRect.getX() - tickW - 3.0f, ty - 0.8f, tickW, 1.6f);
     }
 
-    // Translucent Illuminated Range Thumb
-    const float thumbHeight = 76.0f;
+    const float thumbHeight = 72.0f;
     const float thumbY = juce::jlimit(trackRect.getY(),
                                       trackRect.getBottom() - thumbHeight,
                                       sliderPos - thumbHeight * 0.5f);
@@ -124,7 +114,6 @@ void SequinLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int wi
     g.setColour(juce::Colour(0xffffb84d).withAlpha(0.85f));
     g.drawRoundedRectangle(thumbRect, 4.0f, 1.3f);
 
-    // Center Hairline on Thumb
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.drawHorizontalLine(static_cast<int>(thumbRect.getCentreY()),
                          thumbRect.getX() + 3.0f, thumbRect.getRight() - 3.0f);
@@ -138,16 +127,15 @@ void SequinLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& 
 
     if (button.getName() == "Bypass")
     {
-        // Round Glowing Amber Bypass Button
-        const float diameter = std::min(bounds.getWidth(), bounds.getHeight()) - 10.0f;
+        const float diameter = std::min(bounds.getWidth(), bounds.getHeight()) - 8.0f;
         const auto circle = bounds.withSizeKeepingCentre(diameter, diameter);
 
-        if (!isOn) // Active processing illuminates brightly, or illuminates when engaged
+        if (!isOn)
         {
             juce::ColourGradient glow(juce::Colour(0xffffdd88), circle.getCentreX(), circle.getCentreY(),
-                                      juce::Colour(0x00ff9900), circle.getX() - 10.0f, circle.getY() - 10.0f, true);
+                                      juce::Colour(0x00ff9900), circle.getX() - 8.0f, circle.getY() - 8.0f, true);
             g.setGradientFill(glow);
-            g.fillEllipse(circle.expanded(7.0f));
+            g.fillEllipse(circle.expanded(6.0f));
         }
 
         juce::ColourGradient btnFill(isOn ? juce::Colour(0xff554838) : juce::Colour(0xfffff2cc),
@@ -162,8 +150,7 @@ void SequinLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& 
     }
     else
     {
-        // Focus Audition Pill Switch
-        const auto pill = bounds.withSizeKeepingCentre(44.0f, 18.0f);
+        const auto pill = bounds.withSizeKeepingCentre(42.0f, 18.0f);
         g.setColour(isOn ? juce::Colour(0xffcc7a1a) : juce::Colour(0xff14171c));
         g.fillRoundedRectangle(pill, 9.0f);
         g.setColour(juce::Colour(0xff454c56));
@@ -180,52 +167,57 @@ SequinAudioProcessorEditor::SequinAudioProcessorEditor(SequinAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
     setLookAndFeel(&sequinLnF);
+
+    // Requirement 4: Resizable workspace scaling
+    setResizable(true, true);
+    setResizeLimits(570, 720, 1520, 1920);
+    getConstrainer()->setFixedAspectRatio(760.0 / 960.0);
     setSize(760, 960);
 
-    // Initialize RX History Columns
     ColumnHistory emptyCol {};
     emptyCol.bandDb.fill(-90.0f);
     emptyCol.bandHot.fill(false);
     rxHistoryColumns.resize(numStackColumns, emptyCol);
 
-    // 1. Focus Vertical Slider
+    // Requirement 8: Interactive tooltips for all controls
     focusSlider.setSliderStyle(juce::Slider::LinearVertical);
     focusSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    focusSlider.setTooltip("Focus Frequency: Sets the target center frequency (80 Hz to 20 kHz).");
     addAndMakeVisible(focusSlider);
     focusAttachment = std::make_unique<SliderAttachment>(audioProcessor.getAPVTS(), "focusFreq", focusSlider);
 
-    // 2. Sensitivity Knob
     sensitivitySlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     sensitivitySlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    sensitivitySlider.setTooltip("Sensitivity: Sets detection threshold. Higher sensitivity flags quieter harsh overtones as Too Loud.");
     addAndMakeVisible(sensitivitySlider);
     sensitivityAttachment = std::make_unique<SliderAttachment>(audioProcessor.getAPVTS(), "sensitivity", sensitivitySlider);
 
-    // 3. Q / Resonance Knob
     qResonanceSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     qResonanceSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    qResonanceSlider.setTooltip("Q / Resonance: Width of target zone. Set to minimum for full frequency range (80 Hz to 20 kHz).");
     addAndMakeVisible(qResonanceSlider);
     qResonanceAttachment = std::make_unique<SliderAttachment>(audioProcessor.getAPVTS(), "qResonance", qResonanceSlider);
 
-    // 4. Harmonic Tame Main Knob
     harmonicTameSlider.setName("HarmonicTame");
     harmonicTameSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     harmonicTameSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    harmonicTameSlider.setTooltip("Harmonic Tame: Subtractive gain reduction (0 dB down to -24 dB) applied to excessive peaks.");
     addAndMakeVisible(harmonicTameSlider);
     harmonicTameAttachment = std::make_unique<SliderAttachment>(audioProcessor.getAPVTS(), "harmonicTame", harmonicTameSlider);
 
-    // 5. Mix Knob
     mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     mixSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    mixSlider.setTooltip("Mix: Parallel dry/wet blend between unprocessed vocal and tamed signal.");
     addAndMakeVisible(mixSlider);
     mixAttachment = std::make_unique<SliderAttachment>(audioProcessor.getAPVTS(), "mix", mixSlider);
 
-    // 6. Focus Audition Switch
     focusAuditionButton.setName("FocusAudition");
+    focusAuditionButton.setTooltip("Focus Audition: Solos only the audio within the shaded target window.");
     addAndMakeVisible(focusAuditionButton);
     focusAuditionAttachment = std::make_unique<ButtonAttachment>(audioProcessor.getAPVTS(), "focusAudition", focusAuditionButton);
 
-    // 7. Bypass Button
     bypassButton.setName("Bypass");
+    bypassButton.setTooltip("Bypass: Instantly toggles entire harmonic taming DSP on/off.");
     addAndMakeVisible(bypassButton);
     bypassAttachment = std::make_unique<ButtonAttachment>(audioProcessor.getAPVTS(), "bypass", bypassButton);
 
@@ -240,50 +232,53 @@ SequinAudioProcessorEditor::~SequinAudioProcessorEditor()
 
 void SequinAudioProcessorEditor::timerCallback()
 {
-    audioProcessor.getVisualSnapshot(spectrumDb, baselineDb, thresholdDb, activePeaks);
+    // Requirement 6: Pause spectrum/spectrograph updates when Cubase transport stops
+    if (audioProcessor.isDawPlaying.load())
+    {
+        audioProcessor.getVisualSnapshot(spectrumDb, baselineDb, thresholdDb, activePeaks);
 
-    // Smoothly animate Dual View Mode morph
+        ColumnHistory col {};
+        const double sr = audioProcessor.getCurrentSampleRate();
+        const float binHz = static_cast<float>(sr / static_cast<double>(SequinAudioProcessor::fftSize));
+
+        for (int b = 0; b < numHarmonicBands; ++b)
+        {
+            const float normMin = static_cast<float>(b) / static_cast<float>(numHarmonicBands);
+            const float normMax = static_cast<float>(b + 1) / static_cast<float>(numHarmonicBands);
+            const float f0 = 80.0f * std::pow(250.0f, normMin);
+            const float f1 = 80.0f * std::pow(250.0f, normMax);
+
+            const int k0 = std::clamp(static_cast<int>(f0 / binHz), 1, SequinAudioProcessor::numBins - 1);
+            const int k1 = std::clamp(static_cast<int>(f1 / binHz), k0, SequinAudioProcessor::numBins - 1);
+
+            float maxDb = -96.0f;
+            bool hot = false;
+            for (int k = k0; k <= k1; ++k)
+            {
+                maxDb = std::max(maxDb, spectrumDb[static_cast<size_t>(k)]);
+                if (spectrumDb[static_cast<size_t>(k)] > thresholdDb[static_cast<size_t>(k)])
+                    hot = true;
+            }
+            col.bandDb[static_cast<size_t>(b)]  = maxDb;
+            col.bandHot[static_cast<size_t>(b)] = hot;
+        }
+
+        rxHistoryColumns.pop_front();
+        rxHistoryColumns.push_back(col);
+    }
+
     const bool targetRxMode = audioProcessor.getAPVTS().getRawParameterValue("viewMode")->load() > 0.5f;
     const float targetMorph = targetRxMode ? 1.0f : 0.0f;
     viewMorphProgress += (targetMorph - viewMorphProgress) * 0.22f;
 
-    // Push latest spectral column into RX Harmonic Stack rolling history
-    ColumnHistory col {};
-    const double sr = audioProcessor.getCurrentSampleRate();
-    const float binHz = static_cast<float>(sr / static_cast<double>(SequinAudioProcessor::fftSize));
-
-    for (int b = 0; b < numHarmonicBands; ++b)
-    {
-        const float normMin = static_cast<float>(b) / static_cast<float>(numHarmonicBands);
-        const float normMax = static_cast<float>(b + 1) / static_cast<float>(numHarmonicBands);
-        const float f0 = 20.0f * std::pow(1000.0f, normMin);
-        const float f1 = 20.0f * std::pow(1000.0f, normMax);
-
-        const int k0 = std::clamp(static_cast<int>(f0 / binHz), 1, SequinAudioProcessor::numBins - 1);
-        const int k1 = std::clamp(static_cast<int>(f1 / binHz), k0, SequinAudioProcessor::numBins - 1);
-
-        float maxDb = -96.0f;
-        bool hot = false;
-        for (int k = k0; k <= k1; ++k)
-        {
-            maxDb = std::max(maxDb, spectrumDb[static_cast<size_t>(k)]);
-            if (spectrumDb[static_cast<size_t>(k)] > thresholdDb[static_cast<size_t>(k)])
-                hot = true;
-        }
-        col.bandDb[static_cast<size_t>(b)]  = maxDb;
-        col.bandHot[static_cast<size_t>(b)] = hot;
-    }
-
-    rxHistoryColumns.pop_front();
-    rxHistoryColumns.push_back(col);
-
     repaint();
 }
 
+// Requirement 5 & 9: Full 80Hz - 20kHz visible logarithmic normalization
 float SequinAudioProcessorEditor::freqToNormX(float freqHz) const
 {
-    const float clamped = juce::jlimit(20.0f, 20000.0f, freqHz);
-    return std::log10(clamped / 20.0f) / 3.0f; // log10(20000/20) = 3.0
+    const float clamped = juce::jlimit(80.0f, 20000.0f, freqHz);
+    return std::log10(clamped / 80.0f) / std::log10(20000.0f / 80.0f);
 }
 
 float SequinAudioProcessorEditor::dbToNormY(float db) const
@@ -322,59 +317,46 @@ void SequinAudioProcessorEditor::drawBrushedMetalBackground(juce::Graphics& g, j
     g.setGradientFill(chassisGrad);
     g.fillRect(bounds);
 
-    // Subtle horizontal brushed-metal texture lines
     g.setColour(juce::Colours::white.withAlpha(0.015f));
     for (int y = 0; y < bounds.getHeight(); y += 3)
         g.drawHorizontalLine(y, 0.0f, static_cast<float>(bounds.getWidth()));
 
-    // Outer metallic bevel border
     g.setColour(juce::Colour(0xff484f5a));
     g.drawRect(bounds, 2);
 }
 
-void SequinAudioProcessorEditor::drawTopHeader(juce::Graphics& g)
+void SequinAudioProcessorEditor::drawTopHeader(juce::Graphics& g, float sx, float sy)
 {
-    // Metallic Header Plate
-    juce::Rectangle<float> headerBounds(16.0f, 10.0f, 728.0f, 70.0f);
-    juce::ColourGradient headerGrad(juce::Colour(0xff323740), 380.0f, 10.0f,
-                                    juce::Colour(0xff181b20), 380.0f, 80.0f, false);
+    juce::Rectangle<float> headerBounds(16.0f * sx, 10.0f * sy, 728.0f * sx, 70.0f * sy);
+    juce::ColourGradient headerGrad(juce::Colour(0xff323740), 380.0f * sx, 10.0f * sy,
+                                    juce::Colour(0xff181b20), 380.0f * sx, 80.0f * sy, false);
     g.setGradientFill(headerGrad);
     g.fillRoundedRectangle(headerBounds, 6.0f);
 
-    // Gold Metallic Title "SEQUIN"
-    juce::ColourGradient goldGrad(juce::Colour(0xffffecb3), 380.0f, 16.0f,
-                                  juce::Colour(0xffb5842b), 380.0f, 52.0f, false);
+    juce::ColourGradient goldGrad(juce::Colour(0xffffecb3), 380.0f * sx, 16.0f * sy,
+                                  juce::Colour(0xffb5842b), 380.0f * sx, 52.0f * sy, false);
     g.setGradientFill(goldGrad);
-    g.setFont(juce::Font(34.0f, juce::Font::bold));
-    g.drawText("SEQUIN", 0, 14, getWidth(), 36, juce::Justification::centred);
+    g.setFont(juce::Font(33.0f * sy, juce::Font::bold));
+    g.drawText("SEQUIN", 0, static_cast<int>(14 * sy), getWidth(), static_cast<int>(36 * sy), juce::Justification::centred);
 
     g.setColour(juce::Colour(0xffa9b2bd));
-    g.setFont(juce::Font(14.5f, juce::Font::plain));
-    g.drawText("Harmonic Vocal Processor", 0, 48, getWidth(), 22, juce::Justification::centred);
+    g.setFont(juce::Font(14.0f * sy, juce::Font::plain));
+    g.drawText("Harmonic Vocal Processor", 0, static_cast<int>(48 * sy), getWidth(), static_cast<int>(22 * sy), juce::Justification::centred);
 
-    // Top-Right Telemetry Readout Pill ("Harmonics: 14 / Too Hot: 2" & "Loop: 14 / 2 excessive")
-    juce::Rectangle<float> telemetryBox(532.0f, 18.0f, 198.0f, 48.0f);
+    // Requirement 10: Streamlined top telemetry display ONLY reading "Harmonics detected: X, Too loud: Y"
+    juce::Rectangle<float> telemetryBox(490.0f * sx, 20.0f * sy, 240.0f * sx, 44.0f * sy);
     g.setColour(juce::Colour(0xff0d1117));
-    g.fillRoundedRectangle(telemetryBox, 6.0f);
+    g.fillRoundedRectangle(telemetryBox, 5.0f);
     g.setColour(juce::Colour(0xff3a4654));
-    g.drawRoundedRectangle(telemetryBox, 6.0f, 1.3f);
+    g.drawRoundedRectangle(telemetryBox, 5.0f, 1.2f);
 
-    const int harmCount = audioProcessor.activeHarmonicsCount.load();
+    const int harmCount = audioProcessor.harmonicsDetected.load();
     const int hotCount  = audioProcessor.tooHotHarmonicsCount.load();
-    const int loopTotal = audioProcessor.loopTotalHarmonics.load();
-    const int loopHot   = audioProcessor.loopExcessiveCount.load();
 
     g.setColour(juce::Colour(0xff9ad8ff));
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
-    g.drawText("Harmonics: " + juce::String(harmCount) + " / Too Hot: " + juce::String(hotCount),
-               telemetryBox.getX() + 8.0f, telemetryBox.getY() + 6.0f,
-               telemetryBox.getWidth() - 16.0f, 18.0f, juce::Justification::centred);
-
-    g.setColour(juce::Colour(0xff7aa5c4));
-    g.setFont(juce::Font(12.5f, juce::Font::plain));
-    g.drawText("Loop: " + juce::String(loopTotal) + " / " + juce::String(loopHot) + " excessive",
-               telemetryBox.getX() + 8.0f, telemetryBox.getY() + 24.0f,
-               telemetryBox.getWidth() - 16.0f, 18.0f, juce::Justification::centred);
+    g.setFont(juce::Font(13.0f * sy, juce::Font::bold));
+    g.drawText("Harmonics detected: " + juce::String(harmCount) + ", Too loud: " + juce::String(hotCount),
+               telemetryBox.toNearestInt(), juce::Justification::centred);
 }
 
 void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Rectangle<float> bounds)
@@ -382,41 +364,40 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
     g.saveState();
     g.reduceClipRegion(bounds.toNearestInt());
 
-    // Dark CRT/Analyzer Backing
     juce::ColourGradient bgGrad(juce::Colour(0xff0a0e13), bounds.getX(), bounds.getY(),
                                 juce::Colour(0xff0f171e), bounds.getX(), bounds.getBottom(), false);
     g.setGradientFill(bgGrad);
     g.fillRect(bounds);
 
-    // Subtle Grid Lines & Frequency Labels
-    const float gridFreqs[] = { 20.0f, 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 5000.0f, 10000.0f };
-    const char* gridLabels[] = { "20Hz", "50Hz", "100Hz", "200Hz", "500Hz", "1kHz", "5kHz", "10kHz" };
+    // Requirement 5 & 9: Full 80 Hz to 20 kHz grid mapping
+    const float gridFreqs[] = { 80.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f };
+    const char* gridLabels[] = { "80Hz", "200Hz", "500Hz", "1kHz", "2kHz", "5kHz", "10kHz", "20kHz" };
 
-    g.setFont(juce::Font(11.5f, juce::Font::plain));
+    g.setFont(juce::Font(11.0f, juce::Font::plain));
     for (int i = 0; i < 8; ++i)
     {
         const float nx = freqToNormX(gridFreqs[i]);
         const float gx = bounds.getX() + nx * bounds.getWidth();
         g.setColour(juce::Colour(0xff1c2630));
-        g.drawVerticalLine(static_cast<int>(gx), bounds.getY(), bounds.getBottom() - 20.0f);
+        g.drawVerticalLine(static_cast<int>(gx), bounds.getY(), bounds.getBottom() - 18.0f);
         g.setColour(juce::Colour(0xff7f8c99));
-        g.drawText(gridLabels[i], static_cast<int>(gx) - 18, static_cast<int>(bounds.getBottom()) - 19,
-                   48, 16, juce::Justification::left);
+        const int labelOffset = (i == 7) ? -38 : ((i == 0) ? 2 : -16);
+        g.drawText(gridLabels[i], static_cast<int>(gx) + labelOffset, static_cast<int>(bounds.getBottom()) - 17,
+                   42, 14, juce::Justification::left);
     }
 
     for (int row = 1; row < 5; ++row)
     {
-        const float gy = bounds.getY() + (static_cast<float>(row) / 5.0f) * (bounds.getHeight() - 22.0f);
+        const float gy = bounds.getY() + (static_cast<float>(row) / 5.0f) * (bounds.getHeight() - 20.0f);
         g.setColour(juce::Colour(0xff18212a));
         g.drawHorizontalLine(static_cast<int>(gy), bounds.getX(), bounds.getRight());
     }
 
-    const float plotBottom = bounds.getBottom() - 22.0f;
+    const float plotBottom = bounds.getBottom() - 19.0f;
     const float plotHeight = plotBottom - bounds.getY();
     const double sr = audioProcessor.getCurrentSampleRate();
     const float binHz = static_cast<float>(sr / static_cast<double>(SequinAudioProcessor::fftSize));
 
-    // 1. Live Spectrum Curve + Translucent Green Fill
     juce::Path specPath;
     juce::Path specFill;
     bool started = false;
@@ -424,7 +405,7 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
     for (int k = 1; k < SequinAudioProcessor::numBins; ++k)
     {
         const float freq = k * binHz;
-        if (freq < 20.0f || freq > 20000.0f)
+        if (freq < 80.0f || freq > 20000.0f)
             continue;
 
         const float x = bounds.getX() + freqToNormX(freq) * bounds.getWidth();
@@ -458,13 +439,13 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
         g.strokePath(specPath, juce::PathStrokeType(1.5f));
     }
 
-    // 2. Green Frequency-Calibrated Baseline Floor (Healthy structural vocal reference)
+    // Green structural baseline floor
     juce::Path baselinePath;
     bool baseStarted = false;
     for (int k = 1; k < SequinAudioProcessor::numBins; k += 4)
     {
         const float freq = k * binHz;
-        if (freq < 20.0f || freq > 20000.0f)
+        if (freq < 80.0f || freq > 20000.0f)
             continue;
         const float x = bounds.getX() + freqToNormX(freq) * bounds.getWidth();
         const float y = bounds.getY() + dbToNormY(baselineDb[static_cast<size_t>(k)]) * plotHeight;
@@ -472,11 +453,11 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
         else { baselinePath.lineTo(x, y); }
     }
     g.setColour(juce::Colour(0xff2aff55));
-    g.strokePath(baselinePath, juce::PathStrokeType(2.0f));
+    g.strokePath(baselinePath, juce::PathStrokeType(1.8f));
 
-    // 3. Dynamic Dashed Red "Too Hot" Threshold Line
+    // Dynamic red threshold
     const float sensVal = audioProcessor.getAPVTS().getRawParameterValue("sensitivity")->load();
-    const float threshVisualDb = -16.0f - (sensVal * 0.32f);
+    const float threshVisualDb = -18.0f - (sensVal * 0.32f);
     const float threshY = bounds.getY() + dbToNormY(threshVisualDb) * plotHeight;
 
     juce::Path dashedRed;
@@ -484,19 +465,19 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
     dashedRed.lineTo(bounds.getRight(), threshY);
     const float dashLengths[] = { 6.0f, 4.0f };
     juce::Path strokedDash;
-    juce::PathStrokeType(1.4f).createDashedStroke(strokedDash, dashedRed, dashLengths, 2);
+    juce::PathStrokeType(1.3f).createDashedStroke(strokedDash, dashedRed, dashLengths, 2);
     g.setColour(juce::Colour(0xffff4242).withAlpha(0.85f));
     g.fillPath(strokedDash);
 
-    // 4. Interactive Bandpass Shading Window
+    // Active bandpass shading window
     const float fLow  = audioProcessor.lowCutFreqHz.load();
     const float fHigh = audioProcessor.highCutFreqHz.load();
     const float xLow  = bounds.getX() + freqToNormX(fLow) * bounds.getWidth();
     const float xHigh = bounds.getX() + freqToNormX(fHigh) * bounds.getWidth();
 
     juce::Rectangle<float> bandRect(xLow, bounds.getY(), std::max(4.0f, xHigh - xLow), plotHeight);
-    juce::ColourGradient bandGrad(juce::Colour(0x55ff9d2e), bandRect.getCentreX(), bandRect.getY(),
-                                  juce::Colour(0x22ff7700), bandRect.getCentreX(), bandRect.getBottom(), false);
+    juce::ColourGradient bandGrad(juce::Colour(0x50ff9d2e), bandRect.getCentreX(), bandRect.getY(),
+                                  juce::Colour(0x20ff7700), bandRect.getCentreX(), bandRect.getBottom(), false);
     g.setGradientFill(bandGrad);
     g.fillRect(bandRect);
 
@@ -504,7 +485,7 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
     g.drawVerticalLine(static_cast<int>(bandRect.getX()), bandRect.getY(), bandRect.getBottom());
     g.drawVerticalLine(static_cast<int>(bandRect.getRight()), bandRect.getY(), bandRect.getBottom());
 
-    // 5. Pinned Harmonic Attenuation Pills (e.g., -3.2 dB, -1.1 dB) above targeted red harmonic spikes
+    // Pinned attenuation pills
     g.setFont(juce::Font(11.0f, juce::Font::bold));
     int pillsDrawn = 0;
     float lastPillX = -100.0f;
@@ -517,9 +498,8 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
         const float px = bounds.getX() + freqToNormX(peak.frequencyHz) * bounds.getWidth();
         const float py = bounds.getY() + dbToNormY(peak.magnitudeDb) * plotHeight;
 
-        // Highlight targeted red harmonic spike
         g.setColour(juce::Colour(0xffff3838));
-        g.drawLine(px, py, px, plotBottom, 2.2f);
+        g.drawLine(px, py, px, plotBottom, 2.0f);
         g.fillEllipse(px - 3.0f, py - 3.0f, 6.0f, 6.0f);
 
         if (std::abs(px - lastPillX) > 48.0f && pillsDrawn < 4)
@@ -528,7 +508,7 @@ void SequinAudioProcessorEditor::drawSpectrumView(juce::Graphics& g, juce::Recta
             oss << std::fixed << std::setprecision(1) << peak.attenuationDb << " dB";
             const juce::String pillText = oss.str();
 
-            juce::Rectangle<float> pillBox(px - 24.0f, std::max(bounds.getY() + 4.0f, py - 24.0f), 48.0f, 17.0f);
+            juce::Rectangle<float> pillBox(px - 25.0f, std::max(bounds.getY() + 4.0f, py - 24.0f), 50.0f, 17.0f);
             g.setColour(juce::Colour(0xdd2a0c10));
             g.fillRoundedRectangle(pillBox, 4.0f);
             g.setColour(juce::Colour(0xffff4d4d));
@@ -550,21 +530,21 @@ void SequinAudioProcessorEditor::drawViewModeDivider(juce::Graphics& g, juce::Re
     g.setColour(juce::Colour(0xff12171e));
     g.fillRect(bounds);
 
-    // Selective Warning Indicator (Left Pill — stays dark normally, flashes brightly when "Too Hot" spikes)
-    juce::Rectangle<float> warnPill(bounds.getX() + 12.0f, bounds.getY() + 4.0f, 88.0f, bounds.getHeight() - 8.0f);
+    // Warning LED Indicator
+    juce::Rectangle<float> warnPill(bounds.getX() + 12.0f, bounds.getY() + 4.0f, 80.0f, bounds.getHeight() - 8.0f);
     const bool warnOn = audioProcessor.warningLightActive.load();
 
     g.setColour(juce::Colour(0xff1e242c));
-    g.fillRoundedRectangle(warnPill, 7.0f);
+    g.fillRoundedRectangle(warnPill, 6.0f);
     g.setColour(juce::Colour(0xff38404a));
-    g.drawRoundedRectangle(warnPill, 7.0f, 1.0f);
+    g.drawRoundedRectangle(warnPill, 6.0f, 1.0f);
 
     if (warnOn)
     {
         juce::ColourGradient warnGlow(juce::Colour(0xffffcc44), warnPill.getRight() - 12.0f, warnPill.getCentreY(),
                                       juce::Colour(0xffcc2200), warnPill.getX() + 10.0f, warnPill.getCentreY(), false);
         g.setGradientFill(warnGlow);
-        g.fillRoundedRectangle(warnPill.reduced(2.0f), 5.0f);
+        g.fillRoundedRectangle(warnPill.reduced(2.0f), 4.0f);
         g.setColour(juce::Colour(0xfffffae0));
         g.fillEllipse(warnPill.getRight() - 16.0f, warnPill.getCentreY() - 5.0f, 10.0f, 10.0f);
     }
@@ -574,7 +554,7 @@ void SequinAudioProcessorEditor::drawViewModeDivider(juce::Graphics& g, juce::Re
         g.fillEllipse(warnPill.getRight() - 16.0f, warnPill.getCentreY() - 5.0f, 10.0f, 10.0f);
     }
 
-    // Center Interactive Toggle: VIEW MODE: SPECTRUM | SPECTROGRAM
+    // Requirement 10: Removed bottom telemetry text; center toggle only
     viewToggleHitBox = juce::Rectangle<float>(bounds.getCentreX() - 140.0f, bounds.getY(), 280.0f, bounds.getHeight());
     const bool isRxMode = audioProcessor.getAPVTS().getRawParameterValue("viewMode")->load() > 0.5f;
 
@@ -593,15 +573,6 @@ void SequinAudioProcessorEditor::drawViewModeDivider(juce::Graphics& g, juce::Re
     g.drawText("SPECTROGRAM", static_cast<int>(bounds.getCentreX() + 10.0f),
                static_cast<int>(bounds.getY()), 115, static_cast<int>(bounds.getHeight()),
                juce::Justification::centredLeft);
-
-    // Right Loop Telemetry Summary
-    const int loopTotal = audioProcessor.loopTotalHarmonics.load();
-    const int loopHot   = audioProcessor.loopExcessiveCount.load();
-    g.setColour(juce::Colour(0xff9ab0c4));
-    g.setFont(juce::Font(12.0f, juce::Font::plain));
-    g.drawText("Loop: " + juce::String(loopTotal) + " / " + juce::String(loopHot) + " excessive   >",
-               static_cast<int>(bounds.getRight() - 185.0f), static_cast<int>(bounds.getY()),
-               175, static_cast<int>(bounds.getHeight()), juce::Justification::centredRight);
 }
 
 void SequinAudioProcessorEditor::drawRXHarmonicStackView(juce::Graphics& g, juce::Rectangle<float> bounds)
@@ -612,8 +583,6 @@ void SequinAudioProcessorEditor::drawRXHarmonicStackView(juce::Graphics& g, juce
     g.setColour(juce::Colour(0xff070a0f));
     g.fillRect(bounds);
 
-    // RX Harmonic Stacks: Overtones appear as horizontal lines forming vertical columns,
-    // with natural thickness reduction as you move higher up the frequency spectrum.
     const float colWidth = bounds.getWidth() / static_cast<float>(numStackColumns);
     const float bandHeight = bounds.getHeight() / static_cast<float>(numHarmonicBands);
 
@@ -632,7 +601,6 @@ void SequinAudioProcessorEditor::drawRXHarmonicStackView(juce::Graphics& g, juce
             const float normFreqHeight = static_cast<float>(b) / static_cast<float>(numHarmonicBands - 1);
             const float y = bounds.getBottom() - (static_cast<float>(b + 1) * bandHeight);
 
-            // Natural thickness reduction higher up the frequency spectrum
             const float maxThickness = juce::jmap(normFreqHeight, 0.0f, 1.0f, bandHeight * 0.88f, bandHeight * 0.28f);
             const float lineThickness = std::max(1.0f, maxThickness * (0.5f + 0.5f * intensity));
 
@@ -649,7 +617,6 @@ void SequinAudioProcessorEditor::drawRXHarmonicStackView(juce::Graphics& g, juce
         }
     }
 
-    // Highlight active Focus range on RX Spectrogram
     const float fLow  = audioProcessor.lowCutFreqHz.load();
     const float fHigh = audioProcessor.highCutFreqHz.load();
     const float xLow  = bounds.getX() + freqToNormX(fLow) * bounds.getWidth();
@@ -660,133 +627,124 @@ void SequinAudioProcessorEditor::drawRXHarmonicStackView(juce::Graphics& g, juce
     g.restoreState();
 }
 
-void SequinAudioProcessorEditor::drawControlDeckLabels(juce::Graphics& g)
+void SequinAudioProcessorEditor::drawControlDeckLabels(juce::Graphics& g, float sx, float sy)
 {
-    // Lower Control Panel Divider Lines
     g.setColour(juce::Colour(0xff14171c));
-    g.drawVerticalLine(390, 480.0f, 930.0f);
-    g.drawHorizontalLine(472, 24.0f, 736.0f);
+    g.drawVerticalLine(static_cast<int>(390 * sx), 480.0f * sy, 930.0f * sy);
+    g.drawHorizontalLine(static_cast<int>(472 * sy), 24.0f * sx, 736.0f * sx);
 
-    // Column Headers
+    // Requirement 7: Clean labels with no subtext
     g.setColour(juce::Colour(0xffd0d7e0));
-    g.setFont(juce::Font(15.0f, juce::Font::bold));
-    g.drawText("FOCUS", 42, 488, 150, 20, juce::Justification::centred);
-    g.drawText("SENSITIVITY", 215, 488, 150, 20, juce::Justification::centred);
-    g.drawText("HARMONIC TAME", 405, 488, 165, 20, juce::Justification::centred);
-    g.drawText("MIX", 580, 488, 140, 20, juce::Justification::centred);
+    g.setFont(juce::Font(15.0f * sy, juce::Font::bold));
+    g.drawText("FOCUS", static_cast<int>(42 * sx), static_cast<int>(496 * sy), static_cast<int>(150 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
+    g.drawText("SENSITIVITY", static_cast<int>(215 * sx), static_cast<int>(496 * sy), static_cast<int>(150 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
+    g.drawText("HARMONIC TAME", static_cast<int>(405 * sx), static_cast<int>(496 * sy), static_cast<int>(165 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
+    g.drawText("MIX", static_cast<int>(580 * sx), static_cast<int>(496 * sy), static_cast<int>(140 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
 
-    g.setColour(juce::Colour(0xff9aa4b0));
-    g.setFont(juce::Font(13.0f, juce::Font::plain));
-    g.drawText("(FREQUENCY)", 42, 506, 150, 18, juce::Justification::centred);
-    g.drawText("Too Hot", 215, 506, 150, 18, juce::Justification::centred);
-    g.drawText("(Main)", 405, 506, 165, 18, juce::Justification::centred);
-    g.drawText("(%)", 580, 506, 140, 18, juce::Justification::centred);
-
-    // Focus Slider Scale Labels
+    // Focus Slider Frequency Scale
     g.setColour(juce::Colour(0xffc8d0d8));
-    g.setFont(juce::Font(12.5f, juce::Font::bold));
-    g.drawText("20kHz", 44, 535, 48, 16, juce::Justification::right);
-    g.drawText("5.7", 44, 650, 48, 16, juce::Justification::right);
-    g.drawText("1.8", 44, 710, 48, 16, juce::Justification::right);
-    g.drawText("3.2", 44, 780, 48, 16, juce::Justification::right);
-    g.drawText("20Hz", 44, 855, 48, 16, juce::Justification::right);
+    g.setFont(juce::Font(12.0f * sy, juce::Font::bold));
+    g.drawText("20kHz", static_cast<int>(40 * sx), static_cast<int>(535 * sy), static_cast<int>(48 * sx), static_cast<int>(16 * sy), juce::Justification::right);
+    g.drawText("5.0k",  static_cast<int>(40 * sx), static_cast<int>(630 * sy), static_cast<int>(48 * sx), static_cast<int>(16 * sy), juce::Justification::right);
+    g.drawText("1.5k",  static_cast<int>(40 * sx), static_cast<int>(710 * sy), static_cast<int>(48 * sx), static_cast<int>(16 * sy), juce::Justification::right);
+    g.drawText("300",   static_cast<int>(40 * sx), static_cast<int>(790 * sy), static_cast<int>(48 * sx), static_cast<int>(16 * sy), juce::Justification::right);
+    g.drawText("80Hz",  static_cast<int>(40 * sx), static_cast<int>(855 * sy), static_cast<int>(48 * sx), static_cast<int>(16 * sy), juce::Justification::right);
 
-    // Orange Bracket & Readouts next to Focus Slider
     const float fLow  = audioProcessor.lowCutFreqHz.load();
     const float fHigh = audioProcessor.highCutFreqHz.load();
-    const float sliderTop = 540.0f;
-    const float sliderBot = 865.0f;
+    const float sliderTop = 540.0f * sy;
+    const float sliderBot = 865.0f * sy;
     const float thumbY = sliderTop + (1.0f - static_cast<float>(focusSlider.valueToProportionOfLength(focusSlider.getValue()))) * (sliderBot - sliderTop);
-    const float bracketTop = juce::jlimit(sliderTop, sliderBot - 60.0f, thumbY - 42.0f);
-    const float bracketBot = juce::jlimit(bracketTop + 30.0f, sliderBot, thumbY + 42.0f);
+    const float bracketTop = juce::jlimit(sliderTop, sliderBot - 50.0f * sy, thumbY - 38.0f * sy);
+    const float bracketBot = juce::jlimit(bracketTop + 24.0f * sy, sliderBot, thumbY + 38.0f * sy);
 
     g.setColour(juce::Colour(0xffff9d2e));
-    g.drawLine(134.0f, bracketTop, 141.0f, bracketTop, 2.0f);
-    g.drawLine(141.0f, bracketTop, 141.0f, bracketBot, 2.0f);
-    g.drawLine(134.0f, bracketBot, 141.0f, bracketBot, 2.0f);
+    g.drawLine(134.0f * sx, bracketTop, 141.0f * sx, bracketTop, 2.0f);
+    g.drawLine(141.0f * sx, bracketTop, 141.0f * sx, bracketBot, 2.0f);
+    g.drawLine(134.0f * sx, bracketBot, 141.0f * sx, bracketBot, 2.0f);
 
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
-    g.drawText(formatFrequency(fHigh), 146, static_cast<int>(bracketTop) - 8, 68, 18, juce::Justification::left);
-    g.drawText(formatFrequency(fLow), 146, static_cast<int>(bracketBot) - 8, 68, 18, juce::Justification::left);
+    g.setFont(juce::Font(12.5f * sy, juce::Font::bold));
+    g.drawText(formatFrequency(fHigh), static_cast<int>(146 * sx), static_cast<int>(bracketTop) - 8, static_cast<int>(68 * sx), 18, juce::Justification::left);
+    g.drawText(formatFrequency(fLow), static_cast<int>(146 * sx), static_cast<int>(bracketBot) - 8, static_cast<int>(68 * sx), 18, juce::Justification::left);
 
-    // Bottom Left Banner: CURRENT RANGE: 3.2kHz - 3.7kHz
-    juce::Rectangle<float> rangeBox(42.0f, 885.0f, 255.0f, 34.0f);
+    // Current Range Box
+    juce::Rectangle<float> rangeBox(42.0f * sx, 885.0f * sy, 255.0f * sx, 34.0f * sy);
     g.setColour(juce::Colour(0xff14110e));
     g.fillRoundedRectangle(rangeBox, 4.0f);
     g.setColour(juce::Colour(0xff8c5820));
     g.drawRoundedRectangle(rangeBox, 4.0f, 1.2f);
     g.setColour(juce::Colour(0xffffb84d));
-    g.setFont(juce::Font(14.5f, juce::Font::bold));
+    g.setFont(juce::Font(14.0f * sy, juce::Font::bold));
     g.drawText("CURRENT RANGE: " + formatFrequency(fLow) + " - " + formatFrequency(fHigh),
                rangeBox.toNearestInt(), juce::Justification::centred);
 
-    // Digital Readout Pill under Sensitivity Knob
-    juce::Rectangle<float> sensPill(252.0f, 646.0f, 76.0f, 22.0f);
+    // Sensitivity Readout Pill
+    juce::Rectangle<float> sensPill(252.0f * sx, 646.0f * sy, 76.0f * sx, 22.0f * sy);
     g.setColour(juce::Colour(0xff0d131a));
     g.fillRoundedRectangle(sensPill, 4.0f);
     g.setColour(juce::Colour(0xff7ce8ff));
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
+    g.setFont(juce::Font(13.0f * sy, juce::Font::bold));
     const float sensVal = audioProcessor.getAPVTS().getRawParameterValue("sensitivity")->load();
     g.drawText(juce::String(sensVal, 1) + "%", sensPill.toNearestInt(), juce::Justification::centred);
 
-    // Q / RESONANCE & FOCUS AUDITION Labels
     g.setColour(juce::Colour(0xffc0c8d2));
-    g.setFont(juce::Font(13.5f, juce::Font::bold));
-    g.drawText("Q/RESONANCE", 215, 792, 150, 20, juce::Justification::centred);
-    g.drawText("FOCUS AUDITION", 215, 862, 150, 20, juce::Justification::centred);
+    g.setFont(juce::Font(13.5f * sy, juce::Font::bold));
+    g.drawText("Q/RESONANCE", static_cast<int>(215 * sx), static_cast<int>(792 * sy), static_cast<int>(150 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
+    g.drawText("FOCUS AUDITION", static_cast<int>(215 * sx), static_cast<int>(862 * sy), static_cast<int>(150 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
 
-    // Main Harmonic Tame Scale & Readout Pill (0 dB to -12 dB)
+    // Requirement 3: Main Tame graduated 0 dB clockwise to -24 dB
     g.setColour(juce::Colour(0xffb8c2cc));
-    g.setFont(juce::Font(12.0f, juce::Font::plain));
-    g.drawText("0", 478, 524, 20, 16, juce::Justification::centred);
-    g.drawText("0 dB", 412, 668, 42, 16, juce::Justification::centred);
-    g.drawText("-12 dB", 522, 668, 48, 16, juce::Justification::centred);
+    g.setFont(juce::Font(12.0f * sy, juce::Font::plain));
+    g.drawText("0 dB", static_cast<int>(406 * sx), static_cast<int>(668 * sy), static_cast<int>(44 * sx), 16, juce::Justification::centred);
+    g.drawText("-24 dB", static_cast<int>(524 * sx), static_cast<int>(668 * sy), static_cast<int>(50 * sx), 16, juce::Justification::centred);
 
-    juce::Rectangle<float> tamePill(452.0f, 675.0f, 72.0f, 24.0f);
+    juce::Rectangle<float> tamePill(452.0f * sx, 675.0f * sy, 74.0f * sx, 24.0f * sy);
     g.setColour(juce::Colour(0xff0d131a));
     g.fillRoundedRectangle(tamePill, 4.0f);
     g.setColour(juce::Colour(0xff2c4558));
     g.drawRoundedRectangle(tamePill, 4.0f, 1.0f);
     g.setColour(juce::Colour(0xff7ce8ff));
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
+    g.setFont(juce::Font(13.0f * sy, juce::Font::bold));
     const float tameVal = audioProcessor.getAPVTS().getRawParameterValue("harmonicTame")->load();
-    g.drawText(juce::String(tameVal, 1) + " dB", tamePill.toNearestInt(), juce::Justification::centred);
+    const juce::String tameStr = (tameVal > 0.05f ? "-" : "") + juce::String(tameVal, 1) + " dB";
+    g.drawText(tameStr, tamePill.toNearestInt(), juce::Justification::centred);
 
-    // Mix Readout Pill (0% to 100%)
+    // Mix Readout Pill
     g.setColour(juce::Colour(0xffb8c2cc));
-    g.setFont(juce::Font(12.0f, juce::Font::plain));
-    g.drawText("0%", 595, 632, 32, 16, juce::Justification::centred);
-    g.drawText("100%", 676, 632, 40, 16, juce::Justification::centred);
+    g.setFont(juce::Font(12.0f * sy, juce::Font::plain));
+    g.drawText("0%", static_cast<int>(595 * sx), static_cast<int>(632 * sy), static_cast<int>(32 * sx), 16, juce::Justification::centred);
+    g.drawText("100%", static_cast<int>(676 * sx), static_cast<int>(632 * sy), static_cast<int>(40 * sx), 16, juce::Justification::centred);
 
-    juce::Rectangle<float> mixPill(616.0f, 646.0f, 68.0f, 22.0f);
+    juce::Rectangle<float> mixPill(616.0f * sx, 646.0f * sy, 68.0f * sx, 22.0f * sy);
     g.setColour(juce::Colour(0xff0d131a));
     g.fillRoundedRectangle(mixPill, 4.0f);
     g.setColour(juce::Colour(0xff7ce8ff));
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
+    g.setFont(juce::Font(13.0f * sy, juce::Font::bold));
     const float mixVal = audioProcessor.getAPVTS().getRawParameterValue("mix")->load();
-    g.drawText(juce::String( static_cast<int>(std::round(mixVal)) ) + "%",
+    g.drawText(juce::String(static_cast<int>(std::round(mixVal))) + "%",
                mixPill.toNearestInt(), juce::Justification::centred);
 
     // Bypass Label
     g.setColour(juce::Colour(0xffb8c2cc));
-    g.setFont(juce::Font(13.5f, juce::Font::bold));
-    g.drawText("BYPASS", 580, 882, 140, 20, juce::Justification::centred);
+    g.setFont(juce::Font(13.5f * sy, juce::Font::bold));
+    g.drawText("BYPASS", static_cast<int>(580 * sx), static_cast<int>(882 * sy), static_cast<int>(140 * sx), static_cast<int>(20 * sy), juce::Justification::centred);
 }
 
 void SequinAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    drawBrushedMetalBackground(g, getLocalBounds());
-    drawTopHeader(g);
+    const float sx = static_cast<float>(getWidth()) / 760.0f;
+    const float sy = static_cast<float>(getHeight()) / 960.0f;
 
-    // Main Display Recessed Frame
-    const juce::Rectangle<float> displayFrame(26.0f, 88.0f, 708.0f, 372.0f);
+    drawBrushedMetalBackground(g, getLocalBounds());
+    drawTopHeader(g, sx, sy);
+
+    const juce::Rectangle<float> displayFrame(26.0f * sx, 88.0f * sy, 708.0f * sx, 372.0f * sy);
     g.setColour(juce::Colour(0xff07090c));
     g.fillRoundedRectangle(displayFrame.expanded(3.0f), 6.0f);
     g.setColour(juce::Colour(0xff46505c));
     g.drawRoundedRectangle(displayFrame.expanded(3.0f), 6.0f, 2.0f);
 
-    // Animated Dual View Split / Morph Calculation
-    const float dividerH = 24.0f;
+    const float dividerH = 24.0f * sy;
     const float specRatio = juce::jmap(viewMorphProgress, 0.0f, 1.0f, 0.64f, 0.25f);
     const float specH = (displayFrame.getHeight() - dividerH) * specRatio;
     const float rxH   = displayFrame.getHeight() - dividerH - specH;
@@ -802,17 +760,20 @@ void SequinAudioProcessorEditor::paint(juce::Graphics& g)
     drawViewModeDivider(g, divBounds);
     drawRXHarmonicStackView(g, rxBounds);
 
-    drawControlDeckLabels(g);
+    drawControlDeckLabels(g, sx, sy);
 }
 
 void SequinAudioProcessorEditor::resized()
 {
-    focusSlider.setBounds(92, 536, 44, 332);
-    sensitivitySlider.setBounds(235, 530, 110, 110);
-    qResonanceSlider.setBounds(235, 682, 110, 106);
-    focusAuditionButton.setBounds(255, 832, 70, 26);
+    const float sx = static_cast<float>(getWidth()) / 760.0f;
+    const float sy = static_cast<float>(getHeight()) / 960.0f;
 
-    harmonicTameSlider.setBounds(406, 532, 164, 142);
-    mixSlider.setBounds(595, 530, 110, 110);
-    bypassButton.setBounds(610, 795, 80, 80);
+    focusSlider.setBounds(static_cast<int>(92 * sx),  static_cast<int>(536 * sy), static_cast<int>(44 * sx),  static_cast<int>(332 * sy));
+    sensitivitySlider.setBounds(static_cast<int>(235 * sx), static_cast<int>(530 * sy), static_cast<int>(110 * sx), static_cast<int>(110 * sy));
+    qResonanceSlider.setBounds(static_cast<int>(235 * sx),  static_cast<int>(682 * sy), static_cast<int>(110 * sx), static_cast<int>(106 * sy));
+    focusAuditionButton.setBounds(static_cast<int>(255 * sx), static_cast<int>(832 * sy), static_cast<int>(70 * sx),  static_cast<int>(26 * sy));
+
+    harmonicTameSlider.setBounds(static_cast<int>(406 * sx), static_cast<int>(532 * sy), static_cast<int>(164 * sx), static_cast<int>(142 * sy));
+    mixSlider.setBounds(static_cast<int>(595 * sx), static_cast<int>(530 * sy), static_cast<int>(110 * sx), static_cast<int>(110 * sy));
+    bypassButton.setBounds(static_cast<int>(610 * sx), static_cast<int>(795 * sy), static_cast<int>(80 * sx),  static_cast<int>(80 * sy));
 }
