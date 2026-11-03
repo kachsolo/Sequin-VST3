@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 #include <atomic>
+#include <memory>
+#include <functional>
 
 struct HarmonicPeakInfo
 {
@@ -58,6 +60,8 @@ public:
 
     double getCurrentSampleRate() const noexcept { return currentSampleRate.load(); }
 
+    void loadPreset(int presetIndex);
+
     // Telemetry & Transport State
     std::atomic<bool> isDawPlaying         { false };
     std::atomic<int>  harmonicsDetected    { 0 };
@@ -104,13 +108,14 @@ private:
     std::array<float, numBins> dynamicThresholdDb {};
     std::vector<HarmonicPeakInfo> detectedPeaks;
 
+    int currentProgram = 0;
     bool wasDawPlaying = false;
     int sessionPeakHarmonics = 0;
     int sessionPeakTooHot = 0;
 
     void processSpectralFrame(ChannelSTFT& ch, bool isPrimaryAnalysisChannel,
                               float focusHz, float qVal, float sensitivityVal,
-                              float tameDb, bool auditionMode);
+                              float tameAmount, bool auditionMode);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SequinAudioProcessor)
 };
