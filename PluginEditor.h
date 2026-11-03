@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include <deque>
+#include <memory>
 
 class SequinLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -19,6 +20,11 @@ public:
 
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                           bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
+
+    void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                              const juce::Colour& backgroundColour,
+                              bool shouldDrawButtonAsHighlighted,
+                              bool shouldDrawButtonAsDown) override;
 };
 
 class SequinAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -48,8 +54,9 @@ private:
 
     SequinAudioProcessor& audioProcessor;
     SequinLookAndFeel sequinLnF;
-    juce::TooltipWindow tooltipWindow { this, 400 };
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
+    // Sliders & Toggles
     juce::Slider focusSlider;
     juce::Slider sensitivitySlider;
     juce::Slider qResonanceSlider;
@@ -58,6 +65,13 @@ private:
 
     juce::ToggleButton focusAuditionButton;
     juce::ToggleButton bypassButton;
+
+    // Preset Quick Buttons
+    juce::TextButton btnPresetAKG        { "AKG C2000B" };
+    juce::TextButton btnPresetSibilance  { "Sibilance" };
+    juce::TextButton btnPresetBoxy       { "Boxy Mids" };
+    juce::TextButton btnPresetAir        { "Air & Sheen" };
+    juce::TextButton btnPresetFull       { "Full Range" };
 
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
